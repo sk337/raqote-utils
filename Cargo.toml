@@ -1,0 +1,12 @@
+[package]
+name = "raqote-utils"
+version = "0.1.0"
+edition = "2021"
+authors = ["sk337 <me@pk3.zip>"]
+readme = "README.md"
+license = "MIT"
+
+
+[dependencies]
+raqote = "0.8.4"
+regex = "1.10.6"
