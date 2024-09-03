@@ -178,14 +178,38 @@ pub fn build_circle(radius: f32, x: f32, y: f32) -> raqote::Path {
 
 /// Write text to screen
 ///
-/// ### Arguments
+/// # Arguments
 ///
 /// text: Text to write to screen
+///
 /// x: X cordinate of text
+///
 /// y: Y cordinate of text
+///
 /// font: Font to use for rendering,
+///
 /// font_size: font size in pt
+///
 /// ctx: Draw target to draw text to
+///
+/// # Example
+///
+/// ```
+/// create_text(
+///     "Hello, World\nline2",
+///     50.,
+///     50.,
+///     loaded[2].clone(),
+///     35.,
+///     &mut dt,
+///     &Source::Solid(SolidSource {
+///         r: 0x00,
+///         g: 0x00,
+///         b: 0x00,
+///         a: 0xFF,
+///     }),
+/// );
+/// ```
 pub fn create_text(
     text: &str,
     x: f32,
