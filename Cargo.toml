@@ -10,5 +10,6 @@ homepage = "https://github.com/sk337/raqote-utils"
 
 
 [dependencies]
+font-kit = "0.13.2"
 raqote = "0.8.4"
 regex = "1.10.6"

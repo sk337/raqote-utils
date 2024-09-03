@@ -1,8 +1,30 @@
+use font_kit::{font::Font, source::SystemSource};
 use raqote::*;
 use raqote_utils::*;
 
 pub fn main() {
     let mut dt = DrawTarget::new(512, 512);
+
+    let font_family = SystemSource::new().select_family_by_name("FiraCode Nerd Font");
+
+    if font_family.is_err() {
+        println!("Font not found");
+        return;
+    }
+
+    let font_family = font_family.unwrap();
+
+    let fonts = font_family.fonts();
+
+    // println!("{:#?}", fonts);
+
+    let mut loaded: Vec<Font> = vec![];
+    fonts.iter().for_each(|font| {
+        let f = font.load();
+        if f.is_ok() {
+            loaded.push(f.unwrap());
+        }
+    });
 
     let circle = build_circle(100.0, 256.0, 256.0);
 
@@ -28,6 +50,21 @@ pub fn main() {
             a: 0xFF,
         }),
         &DrawOptions::new(),
+    );
+
+    create_text(
+        "Hello, World\nline2",
+        50.,
+        50.,
+        loaded[2].clone(),
+        35.,
+        &mut dt,
+        &Source::Solid(SolidSource {
+            r: 0x00,
+            g: 0x00,
+            b: 0x00,
+            a: 0xFF,
+        }),
     );
 
     let _ = dt.write_png("png.png");

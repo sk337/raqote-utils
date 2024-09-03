@@ -460,6 +460,7 @@ dependencies = [
 name = "raqote-utils"
 version = "0.1.0"
 dependencies = [
+ "font-kit",
  "raqote",
  "regex",
 ]

@@ -1,4 +1,5 @@
-use raqote::PathBuilder;
+use font_kit::font::Font;
+use raqote::{DrawOptions, DrawTarget, PathBuilder, Point, Source};
 use regex::Regex;
 
 /// Create a raqote::Path from a Svg path data string
@@ -173,4 +174,44 @@ pub fn build_circle(radius: f32, x: f32, y: f32) -> raqote::Path {
     pb.cubic_to(x, y - offset, x + radius - offset, y, x + radius, y);
 
     pb.finish()
+}
+
+/// Write text to screen
+///
+/// ### Arguments
+///
+/// text: Text to write to screen
+/// x: X cordinate of text
+/// y: Y cordinate of text
+/// font: Font to use for rendering,
+/// font_size: font size in pt
+/// ctx: Draw target to draw text to
+pub fn create_text(
+    text: &str,
+    x: f32,
+    y: f32,
+    font: Font,
+    font_size: f32,
+    ctx: &mut DrawTarget,
+    source: &Source<'_>,
+) {
+    // convert font_size to px from em
+
+    let line_height = (font_size / 72.) * 96.;
+
+    let lines = text.split("\n").collect::<Vec<&str>>();
+    let lines = lines.iter();
+
+    let mut y = y;
+    for line in lines {
+        ctx.draw_text(
+            &font,
+            font_size,
+            line,
+            Point::new(x, y),
+            source,
+            &DrawOptions::new(),
+        );
+        y += line_height;
+    }
 }
