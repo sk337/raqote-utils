@@ -10,6 +10,9 @@ homepage = "https://github.com/sk337/raqote-utils"
 
 
 [dependencies]
+euclid = "0.22.11"
 font-kit = "0.13.2"
+pathfinder_geometry = "0.5.1"
 raqote = "0.8.4"
 regex = "1.10.6"
+rustybuzz = "0.18.0"

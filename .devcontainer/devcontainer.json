@@ -3,7 +3,7 @@
 {
 	"name": "Rust",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/rust:1-1-bullseye"
+	"image": "mcr.microsoft.com/devcontainers/rust:1-1-bullseye",
 
 	// Use 'mounts' to make the cargo cache persistent in a Docker Volume.
 	// "mounts": [
@@ -20,8 +20,8 @@
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
 
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "rustc --version",
+	// Use 'postCreateCommand' to run commands after the container z`is created.
+	"postCreateCommand": "sudo apt-get update && sudo apt-get install -y libfontconfig1-dev",
 
 	// Configure tool-specific properties.
 	// "customizations": {},

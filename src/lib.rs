@@ -1,6 +1,13 @@
+use std::arch::x86_64;
+
+use euclid::Transform2D;
 use font_kit::font::Font;
-use raqote::{DrawOptions, DrawTarget, PathBuilder, Point, Source};
+use font_kit::hinting::HintingOptions;
+use font_kit::outline::OutlineSink;
+use pathfinder_geometry::{transform2d, vector::Vector2F};
+use raqote::{DrawOptions, DrawTarget, PathBuilder, Source};
 use regex::Regex;
+use rustybuzz::{Face, UnicodeBuffer};
 
 /// Create a raqote::Path from a Svg path data string
 ///
@@ -132,6 +139,8 @@ pub fn create_path_from_string(svg_raw_path: &str) -> raqote::Path {
 /// # Example
 ///
 /// ```
+/// use raqote_utils::build_circle;
+/// 
 /// let circle = build_circle(100.0, 100.0, 100.0);
 /// ```
 pub fn build_circle(radius: f32, x: f32, y: f32) -> raqote::Path {
@@ -199,7 +208,7 @@ pub fn build_circle(radius: f32, x: f32, y: f32) -> raqote::Path {
 ///     "Hello, World\nline2",
 ///     50.,
 ///     50.,
-///     loaded[2].clone(),
+///     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
 ///     35.,
 ///     &mut dt,
 ///     &Source::Solid(SolidSource {
@@ -214,7 +223,7 @@ pub fn create_text(
     text: &str,
     x: f32,
     y: f32,
-    font: Font,
+    font_path: &str,
     font_size: f32,
     ctx: &mut DrawTarget,
     source: &Source<'_>,
@@ -223,19 +232,85 @@ pub fn create_text(
 
     let line_height = (font_size / 72.) * 96.;
 
+
+
     let lines = text.split("\n").collect::<Vec<&str>>();
     let lines = lines.iter();
 
-    let mut y = y;
-    for line in lines {
-        ctx.draw_text(
-            &font,
-            font_size,
-            line,
-            Point::new(x, y),
-            source,
-            &DrawOptions::new(),
-        );
-        y += line_height;
+    let font_data = std::fs::read(font_path).unwrap();
+
+    let face = Face::from_slice(&font_data, 0).unwrap();
+    let font = Font::from_bytes(font_data.clone().into(), 0).unwrap();
+
+
+    let mut lo = y;
+    // let x = x;
+    
+    
+    
+    for (li, line) in lines.enumerate() {
+        let mut x = x;
+        let mut buffer = UnicodeBuffer::new();
+        buffer.push_str(&line);
+        let glyph_buffer = rustybuzz::shape(&face, &[], buffer);
+
+        for (i, glyph) in glyph_buffer.glyph_infos().iter().enumerate() {
+            let glyph_pos = glyph_buffer.glyph_positions()[i];
+            let glyph_id = glyph.glyph_id;
+
+            // Get the glyph path using font-kit
+            let mut path_builder = PathBuilder::new();
+
+            pub struct MySink<'a> {
+                path_builder: &'a mut PathBuilder,
+            };
+
+            impl<'a> OutlineSink for MySink<'a> {
+
+                fn move_to(&mut self, to: Vector2F) {
+                    self.path_builder.move_to(to.x(), to.y());
+                }
+
+                fn line_to(&mut self, to: Vector2F) {
+                    self.path_builder.line_to(to.x(), to.y()); 
+                }
+
+                fn cubic_curve_to(&mut self, ctrl: pathfinder_geometry::line_segment::LineSegment2F, to: Vector2F) {
+                    self.path_builder.cubic_to(ctrl.from().x(), ctrl.from().y(), ctrl.to().x(), ctrl.to().y(), to.x(), to.y());
+                }
+                fn quadratic_curve_to(&mut self, ctrl: Vector2F, to: Vector2F) {
+                    self.path_builder.quad_to(ctrl.x(), ctrl.y(), to.x(), to.y());
+                }
+
+                fn close(&mut self) {
+                    self.path_builder.close();
+                }
+            }
+
+            let _ = font.outline(glyph_id, HintingOptions::None,  &mut MySink { path_builder: &mut path_builder });
+            
+            let path = path_builder.finish();
+
+
+            let path = path.transform(&Transform2D::new(line_height/2048., 0.0, 0.0, -line_height/2048., x, y+lo-(line_height)));
+
+            println!("{}, {}, {}, {}, {}, {}, {}", line_height/2048., 0.0, 0.0, -line_height/2048., x, y+lo-(line_height), glyph_pos.x_offset);
+
+            ctx.fill(&path, &source, &DrawOptions::new());
+            
+            x += glyph_pos.x_advance as f32 / 64.;
+
+
+        }
+
+        // ctx.draw_text(
+        //     &font,
+        //     font_size,
+        //     line,
+        //     Point::new(x, y),
+        //     source,
+        //     &DrawOptions::new(),
+        // );
+        lo += line_height;
     }
 }
