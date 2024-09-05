@@ -1,11 +1,9 @@
-use std::arch::x86_64;
-
 use euclid::Transform2D;
 use font_kit::font::Font;
 use font_kit::hinting::HintingOptions;
 use font_kit::outline::OutlineSink;
-use pathfinder_geometry::{transform2d, vector::Vector2F};
-use raqote::{DrawOptions, DrawTarget, PathBuilder, Source};
+use pathfinder_geometry::vector::Vector2F;
+use raqote::{DrawOptions, DrawTarget, PathBuilder, Point, Source};
 use regex::Regex;
 use rustybuzz::{Face, UnicodeBuffer};
 
@@ -15,15 +13,18 @@ use rustybuzz::{Face, UnicodeBuffer};
 ///
 /// * `svg_raw_path` - A string slice that holds the Svg path data
 ///
-/// # Example
-///
-/// ```
-/// let B = create_path_from_string("M105 57.0273V453.751H252.659C448.259 461.723 428.124 276.022 352.856 253.513V243.197C424.768 204.274 423.809 54.6826 252.659 57.0273H105Z");
-/// ```
 ///---
 ///
 /// supports the following Svg path data commands:
 /// m,M,l,L,v,V,h,H,c,C,s,S
+///
+/// # Example
+///
+/// ```
+/// use raqote_utils::create_path_from_string;
+///  
+/// let Letter = create_path_from_string("M105 57.0273V453.751H252.659C448.259 461.723 428.124 276.022 352.856 253.513V243.197C424.768 204.274 423.809 54.6826 252.659 57.0273H105Z");
+/// ```
 // TODO: Implement ops  T, t, A, a
 pub fn create_path_from_string(svg_raw_path: &str) -> raqote::Path {
     let svg_regex = format!(
@@ -140,7 +141,7 @@ pub fn create_path_from_string(svg_raw_path: &str) -> raqote::Path {
 ///
 /// ```
 /// use raqote_utils::build_circle;
-/// 
+///
 /// let circle = build_circle(100.0, 100.0, 100.0);
 /// ```
 pub fn build_circle(radius: f32, x: f32, y: f32) -> raqote::Path {
@@ -185,7 +186,11 @@ pub fn build_circle(radius: f32, x: f32, y: f32) -> raqote::Path {
     pb.finish()
 }
 
-/// Write text to screen
+/// <div class="warning">
+///   This method is W.I.P. are may not work as expected
+/// </div>
+///
+/// Write text to screen with ligatures
 ///
 /// # Arguments
 ///
@@ -195,7 +200,7 @@ pub fn build_circle(radius: f32, x: f32, y: f32) -> raqote::Path {
 ///
 /// y: Y cordinate of text
 ///
-/// font: Font to use for rendering,
+/// font_path: path of the font to use for rendering text,
 ///
 /// font_size: font size in pt
 ///
@@ -204,7 +209,12 @@ pub fn build_circle(radius: f32, x: f32, y: f32) -> raqote::Path {
 /// # Example
 ///
 /// ```
-/// create_text(
+/// use raqote_utils::create_text_ligatures;
+/// use raqote::*;
+///
+/// let mut dt = DrawTarget::new(512, 512);
+///
+/// create_text_ligatures(
 ///     "Hello, World\nline2",
 ///     50.,
 ///     50.,
@@ -219,7 +229,7 @@ pub fn build_circle(radius: f32, x: f32, y: f32) -> raqote::Path {
 ///     }),
 /// );
 /// ```
-pub fn create_text(
+pub fn create_text_ligatures(
     text: &str,
     x: f32,
     y: f32,
@@ -232,8 +242,6 @@ pub fn create_text(
 
     let line_height = (font_size / 72.) * 96.;
 
-
-
     let lines = text.split("\n").collect::<Vec<&str>>();
     let lines = lines.iter();
 
@@ -242,13 +250,10 @@ pub fn create_text(
     let face = Face::from_slice(&font_data, 0).unwrap();
     let font = Font::from_bytes(font_data.clone().into(), 0).unwrap();
 
-
     let mut lo = y;
     // let x = x;
-    
-    
-    
-    for (li, line) in lines.enumerate() {
+
+    for (_li, line) in lines.enumerate() {
         let mut x = x;
         let mut buffer = UnicodeBuffer::new();
         buffer.push_str(&line);
@@ -263,23 +268,34 @@ pub fn create_text(
 
             pub struct MySink<'a> {
                 path_builder: &'a mut PathBuilder,
-            };
+            }
 
             impl<'a> OutlineSink for MySink<'a> {
-
                 fn move_to(&mut self, to: Vector2F) {
                     self.path_builder.move_to(to.x(), to.y());
                 }
 
                 fn line_to(&mut self, to: Vector2F) {
-                    self.path_builder.line_to(to.x(), to.y()); 
+                    self.path_builder.line_to(to.x(), to.y());
                 }
 
-                fn cubic_curve_to(&mut self, ctrl: pathfinder_geometry::line_segment::LineSegment2F, to: Vector2F) {
-                    self.path_builder.cubic_to(ctrl.from().x(), ctrl.from().y(), ctrl.to().x(), ctrl.to().y(), to.x(), to.y());
+                fn cubic_curve_to(
+                    &mut self,
+                    ctrl: pathfinder_geometry::line_segment::LineSegment2F,
+                    to: Vector2F,
+                ) {
+                    self.path_builder.cubic_to(
+                        ctrl.from().x(),
+                        ctrl.from().y(),
+                        ctrl.to().x(),
+                        ctrl.to().y(),
+                        to.x(),
+                        to.y(),
+                    );
                 }
                 fn quadratic_curve_to(&mut self, ctrl: Vector2F, to: Vector2F) {
-                    self.path_builder.quad_to(ctrl.x(), ctrl.y(), to.x(), to.y());
+                    self.path_builder
+                        .quad_to(ctrl.x(), ctrl.y(), to.x(), to.y());
                 }
 
                 fn close(&mut self) {
@@ -287,20 +303,29 @@ pub fn create_text(
                 }
             }
 
-            let _ = font.outline(glyph_id, HintingOptions::None,  &mut MySink { path_builder: &mut path_builder });
-            
+            let _ = font.outline(
+                glyph_id,
+                HintingOptions::None,
+                &mut MySink {
+                    path_builder: &mut path_builder,
+                },
+            );
+
             let path = path_builder.finish();
 
-
-            let path = path.transform(&Transform2D::new(line_height/2048., 0.0, 0.0, -line_height/2048., x, y+lo-(line_height)));
-
-            println!("{}, {}, {}, {}, {}, {}, {}", line_height/2048., 0.0, 0.0, -line_height/2048., x, y+lo-(line_height), glyph_pos.x_offset);
+            let path = path.transform(&Transform2D::new(
+                line_height / 2048.,
+                0.0,
+                0.0,
+                -line_height / 2048.,
+                x,
+                y + lo - (line_height),
+            ));
 
             ctx.fill(&path, &source, &DrawOptions::new());
-            
-            x += glyph_pos.x_advance as f32 / 64.;
 
-
+            x += glyph_pos.x_advance as f32 / 64. + glyph_pos.x_advance as f32 / (64. * 2.5);
+            // println!("{x}, {:?}", glyph_pos);
         }
 
         // ctx.draw_text(
@@ -312,5 +337,81 @@ pub fn create_text(
         //     &DrawOptions::new(),
         // );
         lo += line_height;
+    }
+}
+
+/// Write text to screen
+///
+/// # Arguments
+///
+/// text: Text to write to screen
+///
+/// x: X cordinate of text
+///
+/// y: Y cordinate of text
+///
+/// font: Font to use for rendering text,
+///
+/// font_size: font size in pt
+///
+/// ctx: Draw target to draw text to
+///
+/// # Example
+///
+/// ```
+/// use font_kit::{properties::Properties, family_name::FamilyName, source::SystemSource};
+/// use raqote_utils::create_text;
+/// use raqote::*;
+///
+/// let mut dt = DrawTarget::new(512, 512);
+///
+/// let font = SystemSource::new()
+///     .select_best_match(&[FamilyName::SansSerif], &Properties::new())
+///     .unwrap()
+///     .load()
+///     .unwrap();
+///
+/// create_text(
+///     "Hello, World\nline2",
+///     50.,
+///     50.,
+///     &font,
+///     35.,
+///     &mut dt,
+///     &Source::Solid(SolidSource {
+///         r: 0x00,
+///         g: 0x00,
+///         b: 0x00,
+///         a: 0xFF,
+///     }),
+/// );
+/// ```
+pub fn create_text(
+    text: &str,
+    x: f32,
+    y: f32,
+    font: &Font,
+    font_size: f32,
+    ctx: &mut DrawTarget,
+    source: &Source<'_>,
+) {
+    // convert font_size to px from em
+
+    let line_height = (font_size / 72.) * 96.;
+
+    let lines = text.split("\n").collect::<Vec<&str>>();
+    let lines = lines.iter();
+
+    let mut y = y;
+    for line in lines {
+        ctx.draw_text(
+            &font,
+            font_size,
+            line,
+            Point::new(x, y),
+            source,
+            &DrawOptions::new(),
+        );
+        y += line_height;
     }
 }

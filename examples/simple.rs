@@ -4,7 +4,7 @@ use raqote_utils::*;
 pub fn main() {
     let mut dt = DrawTarget::new(512, 512);
 
-    let font_path = "/usr/share/fonts/FiraCodeNerdFont-Medium.ttf";
+    let font_path = "/usr/share/fonts/FiraCodeNerdFont-Retina.ttf";
 
     let circle = build_circle(100.0, 256.0, 256.0);
 
@@ -32,13 +32,12 @@ pub fn main() {
         &DrawOptions::new(),
     );
 
-
-    create_text(
+    create_text_ligatures(
         "Hello, World\nline2\n==>\n#[",
         50.,
         50.,
         &font_path,
-        35.,
+        20.,
         &mut dt,
         &Source::Solid(SolidSource {
             r: 0xff,
