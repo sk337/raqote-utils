@@ -21,7 +21,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container z`is created.
-	"postCreateCommand": "sudo apt-get update && sudo apt-get install -y libfontconfig1-dev",
+	"postCreateCommand": "sudo bash ./.devcontainer/isntall.sh",
 
 	// Configure tool-specific properties.
 	// "customizations": {},
