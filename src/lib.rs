@@ -4,8 +4,36 @@ use font_kit::hinting::HintingOptions;
 use font_kit::outline::OutlineSink;
 use pathfinder_geometry::vector::Vector2F;
 use raqote::{DrawOptions, DrawTarget, PathBuilder, Point, Source};
-use regex::Regex;
 use rustybuzz::{Face, UnicodeBuffer};
+
+
+fn split_path(target: &str) -> Vec<String> {
+    let split_chars = [' ', ','];
+    let mut buffer = String::new();
+    let mut output: Vec<String> = Vec::new();
+
+    for character in target.chars() {
+        if split_chars.contains(&character) {
+            output.push(buffer.clone());
+            buffer.clear();
+        } else if character.is_alphabetic() {
+            output.push(buffer.clone());
+            buffer.clear();
+            buffer.push(character);
+
+        } else {
+            buffer.push(character);
+        }
+    }
+    if !buffer.is_empty() {
+        output.push(buffer);
+    }
+
+    // remove empty strings
+    output.retain(|x| !x.is_empty());
+    
+    output
+}
 
 /// Create a raqote::Path from a Svg path data string
 ///
@@ -27,32 +55,46 @@ use rustybuzz::{Face, UnicodeBuffer};
 /// ```
 // TODO: Implement ops  T, t, A, a
 pub fn create_path_from_string(svg_raw_path: &str) -> raqote::Path {
-    let svg_regex = format!(
-        r"(?:[mMlL]\s?{nr} {nr}|[vVhH]\s?{nr}|[cC]\s?{nr} {nr} {nr} {nr} {nr} {nr}|[Ss]\s?{nr} {nr} {nr} {nr})",
-        nr = r"(?:d?[1-9]\d*(?:\.\d*)?)"
-    );
-    let reg = Regex::new(svg_regex.as_str());
-    let mut elements: Vec<String> = Vec::new();
+    // let svg_regex = format!(
+    //     r"(?:[mMlL]\s?{nr} {nr}|[vVhH]\s?{nr}|[cC]\s?{nr} {nr} {nr} {nr} {nr} {nr}|[Ss]\s?{nr} {nr} {nr} {nr})",
+    //     nr = r"(?:d?[1-9]\d*(?:\.\d*)?)"
+    // );
+    // let reg = Regex::new(svg_regex.as_str()); 
 
-    reg.unwrap().captures_iter(svg_raw_path).for_each(|cap| {
-        elements.push(cap.get(0).unwrap().as_str().to_string());
-    });
+    let mut elements_values = split_path(svg_raw_path).into_iter().peekable();
+
+    let mut elements: Vec<(char, Vec<f32>)> = Vec::new();
+
+
+    while let Some(element) = elements_values.next() {
+        let mut args: Vec<f32> = Vec::new();
+        let command = element.chars().nth(0).unwrap();
+        if command == 'Z' {
+            elements.push(('Z', vec![]));
+            continue;
+        }
+
+        let first_arg = element.chars().skip(1).collect::<String>();
+        if !first_arg.is_empty() {
+            args.push(first_arg.parse::<f32>().expect("Failed to parse number"));
+        } 
+        while elements_values.peek().unwrap().chars().nth(0).unwrap().is_digit(10) {
+            let v = elements_values.next().unwrap();
+            args.push(v.parse::<f32>().expect("Failed to parse number"));
+        }
+
+        elements.push((command, args));
+
+    }
+
+    // println!("{:?}", elements);
 
     let mut path = PathBuilder::new();
 
     let mut last_x = 0.0;
     let mut last_y = 0.0;
 
-    for element in elements.into_iter() {
-        let command = element.chars().nth(0).unwrap();
-        let element = element.chars().skip(1).collect::<String>();
-        let values = element
-            .trim()
-            .split_whitespace()
-            .into_iter()
-            .map(|x| x.parse::<f32>().unwrap())
-            .collect::<Vec<f32>>();
-
+    for (command, values) in elements.into_iter() {
         match command.to_string().as_str() {
             "m" => {
                 last_x += values[0];
@@ -324,7 +366,7 @@ pub fn create_text_ligatures(
 
             ctx.fill(&path, &source, &DrawOptions::new());
 
-            x += glyph_pos.x_advance as f32 / 64. + glyph_pos.x_advance as f32 / (64. * 2.5);
+            x += glyph_pos.x_advance as f32 / 64. // + glyph_pos.x_advance as f32 / (64. * 2.5);
             // println!("{x}, {:?}", glyph_pos);
         }
 

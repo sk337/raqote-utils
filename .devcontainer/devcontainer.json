@@ -22,6 +22,13 @@
 
 	// Use 'postCreateCommand' to run commands after the container z`is created.
 	"postCreateCommand": "sudo bash ./.devcontainer/isntall.sh",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"GitHub.copilot"
+			]
+		}
+	},
 
 	// Configure tool-specific properties.
 	// "customizations": {},

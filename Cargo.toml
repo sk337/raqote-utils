@@ -1,7 +1,7 @@
 [package]
 description = "A set of utilities for working with the [raqote](https://github.com/jrmuizel/raqote) 2D graphics library."
 name = "raqote-utils"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 authors = ["sk337 <me@pk3.zip>"]
 readme = "README.md"
